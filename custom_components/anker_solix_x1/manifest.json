@@ -1,0 +1,15 @@
+{
+  "domain": "anker_solix_x1",
+  "name": "Anker Solix X1",
+  "codeowners": ["@didou7377"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/didou7377/solix-x1-local",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/didou7377/solix-x1-local/issues",
+  "loggers": ["pymodbus"],
+  "requirements": ["pymodbus>=3.8.0,<4.0.0"],
+  "version": "0.1.0"
+}
+
