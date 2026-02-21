@@ -1,44 +1,158 @@
-# Anker Solix X1 Home Assistant Integration
+# Anker Solix X1 (Local) for Home Assistant
 
-Custom Home Assistant integration for reading Anker SOLIX X1 data locally via Modbus TCP.
+Lokale Home-Assistant-Integration fuer **Anker SOLIX X1** ueber **Modbus TCP**.
 
-## Features
+Die Integration liest Messwerte direkt aus deinem Geraet im lokalen Netzwerk (kein Cloud-Zwang) und erstellt daraus automatisch Sensoren in Home Assistant.
 
-- UI-based setup (Config Flow)
-- Configurable:
-  - Name
-  - IP address
-  - Port (default: `502`)
-  - Polling interval (default: `5` seconds)
-- Local polling over Modbus TCP
-- Automatic sensor creation from `SENSOR_DEFINITIONS` in `const.py`
-- HACS custom repository ready
+---
+
+## Highlights
+
+- Vollstaendige Einrichtung ueber die Home-Assistant-Oberflaeche (Config Flow)
+- Lokales Polling ueber Modbus TCP (`iot_class: local_polling`)
+- Konfigurierbarer Host, Port und Abfrageintervall
+- Automatische Sensor-Erstellung aus `SENSOR_DEFINITIONS` in `const.py`
+- Fokus auf stabile Read-Only-Messwerte (keine Schreib-/Steuerfunktionen)
+- HACS Custom Repository geeignet
+
+---
+
+## Aktueller Funktionsumfang
+
+Die Integration liefert derzeit **27 Sensoren** (je nach Geraet/Antworten koennen einzelne Werte `unknown` sein), unter anderem:
+
+- **Diagnose:** Modellname, Seriennummer, Software-Version
+- **Netz:** Frequenz, Phasenspannungen/-stroeme
+- **PV:** aktuelle PV-Leistung, Tages-/Gesamt-PV-Erzeugung
+- **Batterie:** SoC, Spannung, Leistung, Temperatur, Anzahl Packs, Kapazitaet
+- **Energiezaehler:** Netzbezug/Einspeisung und Lastverbrauch (Tag/Gesamt)
+
+Alle Sensoren entstehen zentral ueber `custom_components/anker_solix_x1/const.py`.
+
+---
+
+## Voraussetzungen
+
+- Home Assistant mit `custom_components` Unterstuetzung
+- Netzwerkverbindung vom Home-Assistant-Host zum X1-System
+- Modbus TCP auf der Zielhardware erreichbar
+- Standard-Port ist `502` (kann in der Einrichtung angepasst werden)
+
+---
 
 ## Installation via HACS (Custom Repository)
 
-1. Open HACS in Home Assistant.
-2. Go to **HACS -> Integrations -> top right menu -> Custom repositories**.
-3. Add repository URL: `https://github.com/didou7377/solix-x1-local`
-4. Category: **Integration**
-5. Install **Anker Solix X1**
-6. Restart Home Assistant.
-7. Go to **Settings -> Devices & Services -> Add Integration** and search for **Anker Solix X1**.
+1. In Home Assistant **HACS** oeffnen
+2. **Integrations** -> Menue oben rechts -> **Custom repositories**
+3. Repository URL eintragen:  
+   `https://github.com/didou7377/solix-x1-local`
+4. Typ: **Integration**
+5. Repository hinzufuegen und **Anker Solix X1** installieren
+6. Home Assistant neu starten
+7. Danach: **Settings -> Devices & Services -> Add Integration**
+8. Nach **Anker Solix X1** suchen und konfigurieren
 
-## Manual Installation
+---
 
-1. Copy `custom_components/anker_solix_x1` into your Home Assistant `custom_components` folder.
-2. Restart Home Assistant.
-3. Add the integration in **Settings -> Devices & Services**.
+## Manuelle Installation
 
-## Supported Data
+1. In deiner HA-Konfiguration den Ordner `custom_components` oeffnen/erstellen
+2. `custom_components/anker_solix_x1` aus diesem Repo dorthin kopieren
+3. Home Assistant neu starten
+4. Unter **Settings -> Devices & Services** die Integration hinzufuegen
 
-Current implementation includes system info, battery, grid and energy-related sensors for supported Modbus registers.
-Additional sensors can be added by extending `SENSOR_DEFINITIONS` in `const.py`.
+---
 
-## Release Checklist
+## Ersteinrichtung (Config Flow)
 
-- Update `manifest.json` version
-- Commit and push to `main`
-- Create a GitHub tag/release (for example `v0.1.0`)
-- In Home Assistant HACS, click **Check for updates**
+Beim Hinzufuegen der Integration werden folgende Werte abgefragt:
+
+- **Name** (frei waehlbar, Standard: `Anker Solix X1`)
+- **Host/IP** (Pflichtfeld)
+- **Port** (Standard: `502`)
+- **Scan-Intervall** in Sekunden (Standard: `5`)
+
+Die Integration testet die Erreichbarkeit waehrend der Einrichtung.
+
+### Optionen nach der Einrichtung
+
+Im Options-Dialog kannst du aktuell das **Scan-Intervall** aendern, ohne die Integration neu anzulegen.
+
+---
+
+## Technische Hinweise
+
+- Es wird ein `DataUpdateCoordinator` verwendet, um alle Register zyklisch zu lesen.
+- Die Integration nutzt `pymodbus` (aktuell `>=3.8.0,<4.0.0`).
+- Unterschiedliche Endianness/Word-Swap-Varianten werden je Sensor beruecksichtigt.
+- Legacy-Sensoren aus aelteren Namensschemata werden beim Setup bereinigt.
+
+---
+
+## Fehlerbehebung (Troubleshooting)
+
+### Integration kann nicht verbinden
+
+- Host/IP pruefen (Ping vom HA-System)
+- Port pruefen (`502` bzw. dein konfigurierter Port)
+- Modbus TCP am Zielsystem aktiv/erreichbar
+- Firewall/VLAN-Regeln pruefen
+
+### Sensoren bleiben auf `unknown` oder `unavailable`
+
+- Erreichbarkeit und Stabilitaet der Verbindung pruefen
+- Scan-Intervall testweise erhoehen (z. B. 10-15 Sekunden)
+- Pruefen, ob dein Geraet die entsprechenden Register wirklich liefert
+
+### Werte wirken unplausibel
+
+- Registerdefinitionen (`address`, `count`, `data_type`, `gain`, `swap`) in `const.py` kontrollieren
+- Modell-/Firmware-Unterschiede koennen abweichende Registerbelegungen verursachen
+
+---
+
+## Erweiterung eigener Sensoren
+
+Neue Sensoren fuegst du in `custom_components/anker_solix_x1/const.py` in `SENSOR_DEFINITIONS` hinzu.
+
+Typische Felder:
+
+- `key`, `name`
+- `address`, `count`
+- `data_type` (`uint16`, `int16`, `uint32`, `int32`, `string`)
+- `gain`, optional `swap`
+- optional HA-Metadaten (`unit`, `device_class`, `state_class`, `entity_category`)
+
+Nach Anpassungen:
+
+1. Dateien speichern
+2. Home Assistant neu starten
+3. Integration neu laden (oder komplett neu starten)
+
+---
+
+## Projektstatus
+
+- Version: `0.1.0`
+- Fokus: Lokales, robustes Auslesen von X1-Daten
+- Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
+
+---
+
+## Entwicklung / Releases
+
+Minimaler Release-Ablauf:
+
+1. `manifest.json` Version anheben
+2. Aenderungen committen und auf `main` pushen
+3. GitHub Release/Tag erstellen (z. B. `v0.1.1`)
+4. In HACS nach Updates suchen
+
+---
+
+## Support via PayPal
+
+Wenn dir dieses Projekt hilft und du meine Arbeit unterstuetzen moechtest:
+
+[![PayPal](https://img.shields.io/badge/PayPal-Support-00457C?logo=paypal&logoColor=white)](https://paypal.me/jahnouni)
 
