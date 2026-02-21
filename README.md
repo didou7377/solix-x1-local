@@ -133,9 +133,17 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.0`
+- Version: `0.1.1`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
+
+### Neu in 0.1.1
+
+- Sensoren hinzugefuegt:
+  - PV1 Strom
+  - PV1 Spannung
+  - PV2 Strom
+  - PV2 Spannung
 
 ---
 

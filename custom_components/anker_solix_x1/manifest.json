@@ -10,6 +10,6 @@
   "issue_tracker": "https://github.com/didou7377/solix-x1-local/issues",
   "loggers": ["pymodbus"],
   "requirements": ["pymodbus>=3.8.0,<4.0.0"],
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
 
