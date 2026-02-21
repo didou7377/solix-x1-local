@@ -154,7 +154,13 @@ Minimaler Release-Ablauf:
 
 Wenn dir dieses Projekt hilft und du meine Arbeit unterstuetzen moechtest:
 
-[![PayPal 2 EUR](https://img.shields.io/badge/PayPal-2%E2%82%AC-00457C?logo=paypal&logoColor=white)](https://paypal.me/jahnouni/2)
-[![PayPal 5 EUR](https://img.shields.io/badge/PayPal-5%E2%82%AC-00457C?logo=paypal&logoColor=white)](https://paypal.me/jahnouni/5)
-[![PayPal 10 EUR](https://img.shields.io/badge/PayPal-10%E2%82%AC-00457C?logo=paypal&logoColor=white)](https://paypal.me/jahnouni/10)
+<a href="https://paypal.me/jahnouni/2" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.shields.io/badge/PayPal-2%E2%82%AC-00457C?logo=paypal&logoColor=white" alt="PayPal 2 EUR">
+</a>
+<a href="https://paypal.me/jahnouni/5" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.shields.io/badge/PayPal-5%E2%82%AC-00457C?logo=paypal&logoColor=white" alt="PayPal 5 EUR">
+</a>
+<a href="https://paypal.me/jahnouni/10" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.shields.io/badge/PayPal-10%E2%82%AC-00457C?logo=paypal&logoColor=white" alt="PayPal 10 EUR">
+</a>
 
