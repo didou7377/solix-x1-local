@@ -133,10 +133,18 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.5`
+- Version: `0.1.6`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
 - Vollstaendige Aenderungshistorie: siehe `CHANGELOG.md`
+
+### Neu in 0.1.6
+
+- Akku-Uebersicht strukturiert mit `akku_`-Praefix (nicht zu verwechseln mit `akku1_` als einzelner Pack).
+- Weitere Akku-Register aus der Batterietabelle hinzugefuegt:
+  - SoH, Daily Charge/Discharge, Total Charge/Discharge
+- Korrektur:
+  - `akku1_total_discharge_energy` Skalierung angepasst (`gain: 100`)
 
 ### Neu in 0.1.5
 

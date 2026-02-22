@@ -19,6 +19,14 @@ _LEGACY_SENSOR_KEYS_TO_REMOVE = {
     "daily_discharge_energy",
     "total_charge_energy",
     "total_discharge_energy",
+    # Renamed to structured akku_* keys.
+    "battery_health",
+    "battery_soc",
+    "battery_number_of_packs",
+    "battery_rated_capacity",
+    "battery_status",
+    "battery_voltage",
+    "battery_power",
 }
 
 

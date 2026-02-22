@@ -4,6 +4,24 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 
 Das Format orientiert sich an Keep a Changelog und Semantic Versioning.
 
+## [0.1.6] - 2026-02-22
+### Added
+- Akku-Uebersicht erweitert (mit `akku_`-Praefix) gemaess Batterietabelle:
+  - `akku_number_of_packs` (`10249`)
+  - `akku_rated_capacity` (`10250`)
+  - `akku_status` (`10252`)
+  - `akku_voltage` (`10253`)
+  - `akku_power` (`10254`)
+  - `akku_soc` (`10256`)
+  - `akku_soh` (`10257`)
+  - `akku_daily_charge_energy` (`10258`)
+  - `akku_daily_discharge_energy` (`10260`)
+  - `akku_total_charge_energy` (`10262`)
+  - `akku_total_discharge_energy` (`10264`)
+### Changed
+- `akku1_total_discharge_energy` Skalierung angepasst (`gain` von `10` auf `100`).
+- Alte `battery_*` Keys werden beim Setup aus der Entity Registry bereinigt.
+
 ## [0.1.5] - 2026-02-22
 ### Added
 - Neuer Sensor `Akku Gesundheit` (`battery_health`, Register `10015`, `UINT16`, `%`).
