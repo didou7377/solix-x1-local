@@ -133,9 +133,15 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.2`
+- Version: `0.1.3`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
+
+### Neu in 0.1.3
+
+- Korrektur:
+  - `Akku1 Rate Capacity` Skalierung angepasst (`gain` von `10` auf `100`)
+  - Ziel: korrekte Darstellung der Nennkapazitaet (z. B. `5.00 kWh` statt `50.00 kWh`)
 
 ### Neu in 0.1.2
 

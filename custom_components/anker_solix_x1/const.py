@@ -417,7 +417,7 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "count": 2,
         "data_type": "uint32",
         "swap": "word",
-        "gain": 10,
+        "gain": 100,
         "unit": "kWh",
         "device_class": "energy",
         "state_class": "measurement",
