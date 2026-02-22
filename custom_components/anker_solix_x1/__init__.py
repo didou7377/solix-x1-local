@@ -27,6 +27,8 @@ _LEGACY_SENSOR_KEYS_TO_REMOVE = {
     "battery_status",
     "battery_voltage",
     "battery_power",
+    # Removed duplicate/incorrect power entity.
+    "akku_power",
 }
 
 

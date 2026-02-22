@@ -346,18 +346,6 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "state_class": "measurement",
     },
     {
-        "key": "akku_power",
-        "name": "Akku Leistung",
-        "address": 10254,
-        "count": 2,
-        "data_type": "int32",
-        "swap": "word",
-        "gain": 1,
-        "unit": "W",
-        "device_class": "power",
-        "state_class": "measurement",
-    },
-    {
         "key": "akku_soc",
         "name": "Akku SoC",
         "address": 10256,
