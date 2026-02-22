@@ -133,9 +133,35 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.1`
+- Version: `0.1.2`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
+
+### Neu in 0.1.2
+
+- Sensoren hinzugefuegt (Leistungswerte):
+  - Haus Verbrauch
+  - Akku Leistung
+  - Power Load
+  - Power Grid
+- Sensoren hinzugefuegt (Backup-Phasenstroeme):
+  - Backup/Phase A Strom
+  - Backup Phase B Strom
+  - Backup Phase C Strom
+- Sensoren hinzugefuegt (Akku1 Block):
+  - Akku1 Modellname
+  - Akku1 Seriennummer
+  - Akku1 Software Version
+  - Akku1 Hardware Version
+  - Akku1 Rate Capacity
+  - Akku1 Status
+  - Akku1 Spannung
+  - Akku1 Leistung
+  - Akku1 SoC
+  - Akku1 SoH
+  - Akku1 Gesamt-Entladeenergie
+  - Akku1 Max Temperatur
+  - Akku1 Min Temperatur
 
 ### Neu in 0.1.1
 
