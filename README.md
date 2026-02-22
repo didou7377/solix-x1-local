@@ -133,10 +133,18 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.4`
+- Version: `0.1.5`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
 - Vollstaendige Aenderungshistorie: siehe `CHANGELOG.md`
+
+### Neu in 0.1.5
+
+- Sensor hinzugefuegt:
+  - Akku Gesundheit (`10015`, `UINT16`, `%`)
+- Struktur verbessert:
+  - Akku-Daten sind jetzt als **Akku Uebersicht** markiert
+  - klar getrennt vom **Akku1**-Block (einzelner Pack)
 
 ### Neu in 0.1.4
 

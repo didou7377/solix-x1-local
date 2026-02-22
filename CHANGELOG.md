@@ -4,6 +4,14 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 
 Das Format orientiert sich an Keep a Changelog und Semantic Versioning.
 
+## [0.1.5] - 2026-02-22
+### Added
+- Neuer Sensor `Akku Gesundheit` (`battery_health`, Register `10015`, `UINT16`, `%`).
+### Changed
+- Akku-Daten in `const.py` als klare Sektion gekennzeichnet:
+  - **Akku Uebersicht** = Systemakku (gesamt)
+  - **Akku1 Block** = einzelner Akku-Pack
+
 ## [0.1.4] - 2026-02-22
 ### Added
 - `CHANGELOG.md` eingefuehrt als zentrale Versions- und Aenderungshistorie.

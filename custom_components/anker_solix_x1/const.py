@@ -289,6 +289,18 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "device_class": "temperature",
         "state_class": "measurement",
     },
+    # Akku Uebersicht (systemweit, nicht Akku1..Akku6 einzeln)
+    {
+        "key": "battery_health",
+        "name": "Akku Gesundheit",
+        "address": 10015,
+        "count": 1,
+        "data_type": "uint16",
+        "gain": 1,
+        "unit": "%",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
     {
         "key": "battery_soc",
         "name": "Akku SoC",
@@ -357,7 +369,7 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "device_class": "power",
         "state_class": "measurement",
     },
-    # Akku1 Block (zusammengefasst fuer bessere Uebersicht)
+    # Akku1 Block (einzelner Pack; Akku gesamt ist in der Akku-Uebersicht)
     {
         "key": "akku1_model_name",
         "name": "Akku1 Modellname",
