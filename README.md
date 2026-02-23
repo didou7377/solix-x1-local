@@ -133,16 +133,10 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.7`
+- Version: `0.1.6`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
 - Vollstaendige Aenderungshistorie: siehe `CHANGELOG.md`
-
-### Neu in 0.1.7
-
-- Energie-Sensoren hinzugefuegt:
-  - Gesamt-Batterie-Ladeenergie (`10022`)
-  - Gesamt-Wirkenergie Vorwaerts (`10656`)
 
 ### Neu in 0.1.6
 

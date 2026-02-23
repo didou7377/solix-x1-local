@@ -4,11 +4,6 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 
 Das Format orientiert sich an Keep a Changelog und Semantic Versioning.
 
-## [0.1.7] - 2026-02-22
-### Added
-- Neuer Sensor `total_battery_charge_energy` (`10022`, `UINT32`, `kWh`, `gain: 10`).
-- Neuer Sensor `total_forward_active_energy` (`10656`, `UINT32`, `kWh`, `gain: 10`).
-
 ## [0.1.6] - 2026-02-22
 ### Added
 - Akku-Uebersicht erweitert (mit `akku_`-Praefix) gemaess Batterietabelle:
