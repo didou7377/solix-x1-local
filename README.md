@@ -133,10 +133,15 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.6`
+- Version: `0.1.7`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
 - Vollstaendige Aenderungshistorie: siehe `CHANGELOG.md`
+
+### Neu in 0.1.7
+
+- Akku-Kapazitaetswert angepasst:
+  - `Akku Nennkapazitaet` (`10250`) nutzt jetzt `swap: word`
 
 ### Neu in 0.1.6
 

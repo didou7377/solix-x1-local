@@ -4,6 +4,10 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 
 Das Format orientiert sich an Keep a Changelog und Semantic Versioning.
 
+## [0.1.7] - 2026-02-22
+### Changed
+- Akku-Kapazitaetswert angepasst: `akku_rated_capacity` (`10250`) liest nun mit `swap: "word"`.
+
 ## [0.1.6] - 2026-02-22
 ### Added
 - Akku-Uebersicht erweitert (mit `akku_`-Praefix) gemaess Batterietabelle:
