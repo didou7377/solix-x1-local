@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.typing import ConfigType
 
-from .const import PLATFORMS
+from .const import DOMAIN, PLATFORMS
 from .coordinator import AnkerSolixX1ConfigEntry, AnkerSolixX1Coordinator
+from .services import async_setup_services
+
+# Setup happens only through the UI; required because async_setup is defined.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LEGACY_SENSOR_KEYS_TO_REMOVE = {
     "grid_voltage_uab",
@@ -39,6 +44,12 @@ def _remove_legacy_entities(hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry)
             continue
         if entity.unique_id[len(prefix) :] in _LEGACY_SENSOR_KEYS_TO_REMOVE:
             entity_registry.async_remove(entity.entity_id)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register integration-wide actions."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry) -> bool:

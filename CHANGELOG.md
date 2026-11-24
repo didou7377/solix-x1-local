@@ -4,6 +4,11 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 
 Das Format orientiert sich an Keep a Changelog und Semantic Versioning.
 
+## [0.2.1] - 2026-11-24
+### Added
+- Optionales X1-Dashboard mit Live-Leistung, Akku, Tagesenergie und 24-Stunden-Verlauf.
+- Die Aktion `anker_solix_x1.generate_dashboard` erzeugt die YAML-Konfiguration mit den Entitäts-IDs der gewählten Anlage.
+
 ## [0.2.0] - 2026-11-24
 ### Changed
 - Modbus-Register werden in zusammenhaengenden Bloecken gelesen statt einzeln (56 -> 8 Anfragen pro Zyklus). Lehnt das Geraet einen Block ab, wird auf Einzelabfragen zurueckgefallen.

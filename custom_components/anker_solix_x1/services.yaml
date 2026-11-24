@@ -1,0 +1,10 @@
+generate_dashboard:
+  name: X1-Dashboard erzeugen
+  description: Gibt die Dashboard-Konfiguration für eine Anker Solix X1-Anlage als YAML zurück.
+  fields:
+    config_entry_id:
+      name: Anker Solix X1
+      description: Bei mehreren eingerichteten X1-Anlagen bitte eine auswählen.
+      selector:
+        config_entry:
+          integration: anker_solix_x1

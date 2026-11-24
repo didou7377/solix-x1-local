@@ -193,9 +193,25 @@ Nach Anpassungen:
 
 ---
 
+## X1-Dashboard
+
+Das optionale Dashboard nutzt native Home-Assistant-Karten für Solarleistung,
+Hausverbrauch, Netz, Akku, Tagesenergie und den Leistungsverlauf der letzten 24 Stunden.
+
+1. Öffne **Entwicklerwerkzeuge → Aktionen** und führe **X1-Dashboard erzeugen**
+   (`anker_solix_x1.generate_dashboard`) aus. Bei mehreren X1-Anlagen wähle eine aus.
+2. Kopiere den Inhalt des Antwortfelds `yaml` (ab `views:`).
+3. Erstelle unter **Einstellungen → Dashboards** ein neues Dashboard. Öffne es,
+   gehe in den Bearbeitungsmodus und öffne im Menü den **Rohkonfigurationseditor**.
+   Füge dort den kopierten Inhalt ein und speichere.
+
+Die Aktion verwendet die aktuellen Entitäts-IDs deiner Anlage und berücksichtigt
+auch umbenannte Sensoren. Bei späteren Umbenennungen kannst du die Konfiguration
+erneut erzeugen. Das Diagramm nutzt den vorhandenen Verlauf von Home Assistant.
+
 ## Projektstatus
 
-- Version: `0.2.0`
+- Version: `0.2.1`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
 - Vollstaendige Aenderungshistorie: siehe `CHANGELOG.md`
