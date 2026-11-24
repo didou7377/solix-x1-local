@@ -19,7 +19,7 @@ Die Integration liest Messwerte direkt aus deinem Geraet im lokalen Netzwerk (ke
 
 ## Aktueller Funktionsumfang
 
-Die Integration liefert derzeit **27 Sensoren** (je nach Geraet/Antworten koennen einzelne Werte `unknown` sein), unter anderem:
+Die Integration liefert derzeit **56 Sensoren** (je nach Geraet/Antworten koennen einzelne Werte `unknown` sein), unter anderem:
 
 - **Diagnose:** Modellname, Seriennummer, Software-Version
 - **Netz:** Frequenz, Phasenspannungen/-stroeme
@@ -33,7 +33,7 @@ Alle Sensoren entstehen zentral ueber `custom_components/anker_solix_x1/const.py
 
 ## Voraussetzungen
 
-- Home Assistant mit `custom_components` Unterstuetzung
+- Home Assistant **2024.12** oder neuer mit `custom_components` Unterstuetzung
 - Netzwerkverbindung vom Home-Assistant-Host zum X1-System
 - Modbus TCP auf der Zielhardware erreichbar
 - Standard-Port ist `502` (kann in der Einrichtung angepasst werden)
@@ -76,13 +76,17 @@ Die Integration testet die Erreichbarkeit waehrend der Einrichtung.
 
 ### Optionen nach der Einrichtung
 
-Im Options-Dialog kannst du aktuell das **Scan-Intervall** aendern, ohne die Integration neu anzulegen.
+Im Options-Dialog kannst du das **Scan-Intervall** aendern, ohne die Integration neu anzulegen. Die Integration wird danach automatisch neu geladen, das neue Intervall gilt sofort.
 
 ---
 
 ## Technische Hinweise
 
 - Es wird ein `DataUpdateCoordinator` verwendet, um alle Register zyklisch zu lesen.
+- Die Modbus-Verbindung bleibt zwischen den Abfragen offen und wird nur bei Fehlern neu aufgebaut.
+- Benachbarte Register werden gebuendelt gelesen (`MAX_BLOCK_SIZE`, `MAX_BLOCK_GAP` in `const.py`): statt 56 Einzelabfragen sind es pro Zyklus nur noch 8. Lehnt das Geraet einen Block ab, werden dessen Register automatisch einzeln gelesen.
+- Jede Anfrage hat ein Timeout (`MODBUS_TIMEOUT`, Standard 5 s).
+- Die Dekodierung liegt in `modbus_codec.py` (ohne Home-Assistant-Abhaengigkeit) und ist durch Tests in `tests/` abgedeckt.
 - Die Integration nutzt `pymodbus` (aktuell `>=3.8.0,<4.0.0`).
 - Unterschiedliche Endianness/Word-Swap-Varianten werden je Sensor beruecksichtigt.
 - Legacy-Sensoren aus aelteren Namensschemata werden beim Setup bereinigt.
@@ -133,10 +137,19 @@ Nach Anpassungen:
 
 ## Projektstatus
 
-- Version: `0.1.7`
+- Version: `0.2.0`
 - Fokus: Lokales, robustes Auslesen von X1-Daten
 - Geplanter Ausbau: schrittweise neue Register/Sensoren je nach Testbasis
 - Vollstaendige Aenderungshistorie: siehe `CHANGELOG.md`
+
+### Neu in 0.2.0
+
+- Register werden gebuendelt gelesen, die Verbindung bleibt offen: deutlich weniger Last fuer den X1
+- Timeout pro Anfrage; faellt die Verbindung aus, wird sie beim naechsten Zyklus neu aufgebaut
+- Ein geaendertes Scan-Intervall gilt sofort (vorher erst nach Neustart)
+- Geraeteinfo zeigt Modell, Seriennummer und Software-Version
+- Kapazitaetssensoren als `energy_storage` (beseitigt HA-Warnungen), Statussensoren ohne Langzeitstatistik
+- Mindestversion Home Assistant 2024.12
 
 ### Neu in 0.1.7
 

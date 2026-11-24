@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN, PLATFORMS
-from .coordinator import AnkerSolixX1Coordinator
-
-AnkerSolixX1ConfigEntry = ConfigEntry
+from .const import PLATFORMS
+from .coordinator import AnkerSolixX1ConfigEntry, AnkerSolixX1Coordinator
 
 _LEGACY_SENSOR_KEYS_TO_REMOVE = {
     "grid_voltage_uab",
@@ -37,14 +34,10 @@ def _remove_legacy_entities(hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry)
     entity_registry = er.async_get(hass)
     prefix = f"{entry.entry_id}_"
 
-    for entity in list(entity_registry.entities.values()):
-        if entity.config_entry_id != entry.entry_id or entity.domain != "sensor":
+    for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        if entity.domain != "sensor" or not entity.unique_id.startswith(prefix):
             continue
-        if entity.unique_id is None or not entity.unique_id.startswith(prefix):
-            continue
-
-        legacy_key = entity.unique_id[len(prefix) :]
-        if legacy_key in _LEGACY_SENSOR_KEYS_TO_REMOVE:
+        if entity.unique_id[len(prefix) :] in _LEGACY_SENSOR_KEYS_TO_REMOVE:
             entity_registry.async_remove(entity.entity_id)
 
 
@@ -52,20 +45,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry)
     """Set up Anker Solix X1 from a config entry."""
     coordinator = AnkerSolixX1Coordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
-
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     _remove_legacy_entities(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry) -> None:
+    """Reload the entry so changed options (scan interval) take effect."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
-    return unload_ok
-
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

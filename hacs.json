@@ -3,7 +3,7 @@
   "country": "DE",
   "content_in_root": false,
   "domains": ["anker_solix_x1"],
-  "homeassistant": "2024.8.0",
+  "homeassistant": "2024.12.0",
   "iot_class": "local_polling",
   "render_readme": true
 }

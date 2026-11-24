@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from datetime import timedelta
 import logging
+from typing import Any
 
 from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.exceptions import ConnectionException, ModbusIOException
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
@@ -17,11 +19,25 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_UNIT_ID,
     DOMAIN,
+    MAX_BLOCK_GAP,
+    MAX_BLOCK_SIZE,
     MODBUS_ADDRESS_OFFSET,
+    MODBUS_RETRIES,
+    MODBUS_TIMEOUT,
     SENSOR_DEFINITIONS,
+)
+from .modbus_codec import (
+    RegisterBlock,
+    SensorDefinition,
+    build_register_blocks,
+    decode_sensor,
+    slice_registers,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+type AnkerSolixX1ConfigEntry = ConfigEntry[AnkerSolixX1Coordinator]
+SensorData = dict[str, int | float | str | None]
 
 
 async def _read_input_registers_compat(
@@ -29,41 +45,29 @@ async def _read_input_registers_compat(
     address: int,
     count: int,
     unit_id: int,
-):
+) -> Any:
     """Read input registers across pymodbus API variants.
 
-    Different pymodbus versions use different keyword names for unit id
-    (e.g. device_id, unit, slave). Try the known variants in order.
+    Different pymodbus versions use different keyword names for the unit id
+    (device_id, slave, unit). Try the known variants in order.
     """
-    try:
-        return await client.read_input_registers(
-            address=address,
-            count=count,
-            device_id=unit_id,
-        )
-    except TypeError:
-        pass
-
-    try:
-        return await client.read_input_registers(
-            address=address,
-            count=count,
-            unit=unit_id,
-        )
-    except TypeError:
-        return await client.read_input_registers(
-            address=address,
-            count=count,
-            slave=unit_id,
-        )
+    for keyword in ("device_id", "slave", "unit"):
+        try:
+            return await client.read_input_registers(
+                address=address, count=count, **{keyword: unit_id}
+            )
+        except TypeError:
+            continue
+    raise UpdateFailed("Keine kompatible pymodbus-Version gefunden")
 
 
-class AnkerSolixX1Coordinator(DataUpdateCoordinator[dict[str, int | float | str | None]]):
+class AnkerSolixX1Coordinator(DataUpdateCoordinator[SensorData]):
     """Coordinator to fetch Anker Solix X1 data."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    config_entry: AnkerSolixX1ConfigEntry
+
+    def __init__(self, hass: HomeAssistant, entry: AnkerSolixX1ConfigEntry) -> None:
         """Initialize the coordinator."""
-        self.entry = entry
         self.host: str = entry.data[CONF_HOST]
         self.port: int = entry.data[CONF_PORT]
         self.unit_id: int = entry.data.get("unit_id", DEFAULT_UNIT_ID)
@@ -76,146 +80,105 @@ class AnkerSolixX1Coordinator(DataUpdateCoordinator[dict[str, int | float | str 
             hass=hass,
             logger=_LOGGER,
             name=DOMAIN,
+            config_entry=entry,
             update_interval=timedelta(seconds=scan_interval_seconds),
         )
 
-    def _decode_register_value(
-        self,
-        registers: list[int],
-        data_type: str,
-        gain: int,
-        swap: str | None,
-        max_abs: float | None = None,
-    ) -> int | float | str:
-        """Decode Modbus registers and apply gain."""
-        normalized_data_type = data_type.strip().lower()
-        registers_local = registers.copy()
+        self._client: AsyncModbusTcpClient | None = None
+        self._blocks: list[RegisterBlock] = build_register_blocks(
+            SENSOR_DEFINITIONS, MAX_BLOCK_SIZE, MAX_BLOCK_GAP
+        )
+        _LOGGER.debug(
+            "%s Sensoren werden in %s Modbus-Anfragen gelesen",
+            len(SENSOR_DEFINITIONS),
+            len(self._blocks),
+        )
 
-        if normalized_data_type == "string":
-            chars = bytearray()
-            for register in registers:
-                high = (register >> 8) & 0xFF
-                low = register & 0xFF
-                if swap == "byte":
-                    chars.append(low)
-                    chars.append(high)
-                else:
-                    chars.append(high)
-                    chars.append(low)
+    async def _async_get_client(self) -> AsyncModbusTcpClient:
+        """Return a connected client, reusing the open connection."""
+        if self._client is not None and self._client.connected:
+            return self._client
 
-            decoded = chars.decode("utf-8", errors="ignore")
-            return decoded.replace("\x00", "").strip()
-
-        if normalized_data_type == "int32" and swap == "auto_power" and len(registers_local) >= 2:
-            def _byte_swap(reg: int) -> int:
-                return ((reg & 0xFF) << 8) | ((reg >> 8) & 0xFF)
-
-            def _to_int32(regs: list[int]) -> int:
-                value = (regs[0] << 16) | regs[1]
-                if value > 0x7FFFFFFF:
-                    value -= 0x100000000
-                return value
-
-            candidate_regs: list[list[int]] = [
-                [_byte_swap(registers_local[0]), _byte_swap(registers_local[1])],  # byte
-                [registers_local[1], registers_local[0]],  # word
-                [_byte_swap(registers_local[1]), _byte_swap(registers_local[0])],  # word_byte
-                [registers_local[0], registers_local[1]],  # none
-            ]
-
-            candidates: list[int | float] = []
-            for regs in candidate_regs:
-                raw = _to_int32(regs)
-                scaled = raw if gain <= 1 else raw / gain
-                if isinstance(scaled, float) and scaled.is_integer():
-                    scaled = int(scaled)
-                candidates.append(scaled)
-
-            if max_abs is not None:
-                plausible = [
-                    value for value in candidates if isinstance(value, (int, float)) and abs(value) <= max_abs
-                ]
-                if plausible:
-                    return plausible[0]
-
-            return min(candidates, key=lambda value: abs(float(value)))
-
-        if swap == "word" and len(registers_local) >= 2:
-            registers_local = [registers_local[1], registers_local[0], *registers_local[2:]]
-        elif swap == "byte":
-            registers_local = [((reg & 0xFF) << 8) | ((reg >> 8) & 0xFF) for reg in registers_local]
-        elif swap == "word_byte" and len(registers_local) >= 2:
-            registers_local = [registers_local[1], registers_local[0], *registers_local[2:]]
-            registers_local = [
-                ((reg & 0xFF) << 8) | ((reg >> 8) & 0xFF) for reg in registers_local
-            ]
-
-        if normalized_data_type == "uint16":
-            raw_value = registers_local[0]
-        elif normalized_data_type == "int16":
-            raw_value = registers_local[0]
-            if raw_value > 0x7FFF:
-                raw_value -= 0x10000
-        elif normalized_data_type == "uint32":
-            raw_value = (registers_local[0] << 16) | registers_local[1]
-        elif normalized_data_type == "int32":
-            raw_value = (registers_local[0] << 16) | registers_local[1]
-            if raw_value > 0x7FFFFFFF:
-                raw_value -= 0x100000000
-        else:
-            raise ValueError(f"Unsupported data_type: {data_type}")
-
-        if gain <= 1:
-            return raw_value
-
-        scaled = raw_value / gain
-        if isinstance(scaled, float) and scaled.is_integer():
-            return int(scaled)
-        return scaled
-
-    async def _async_update_data(self) -> dict[str, int | float | str | None]:
-        """Fetch data from inverter via Modbus TCP."""
-        client = AsyncModbusTcpClient(host=self.host, port=self.port)
-        connected = await client.connect()
-        if not connected:
+        self._close_client()
+        client = AsyncModbusTcpClient(
+            host=self.host,
+            port=self.port,
+            timeout=MODBUS_TIMEOUT,
+            retries=MODBUS_RETRIES,
+        )
+        if not await client.connect():
+            client.close()
             raise UpdateFailed(f"Verbindung fehlgeschlagen: {self.host}:{self.port}")
+        self._client = client
+        return client
 
-        data: dict[str, int | float | str | None] = {}
+    def _close_client(self) -> None:
+        if self._client is not None:
+            self._client.close()
+            self._client = None
+
+    async def async_shutdown(self) -> None:
+        """Close the Modbus connection when the entry is unloaded."""
+        await super().async_shutdown()
+        self._close_client()
+
+    async def _read(self, client: AsyncModbusTcpClient, address: int, count: int) -> list[int] | None:
+        """Read registers, returning None when the device answers with an error."""
+        result = await _read_input_registers_compat(
+            client, address + MODBUS_ADDRESS_OFFSET, count, self.unit_id
+        )
+        if result.isError():
+            return None
+        return list(result.registers)
+
+    def _decode_into(self, data: SensorData, sensor_def: SensorDefinition, registers: list[int]) -> None:
+        key = str(sensor_def["key"])
+        try:
+            data[key] = decode_sensor(sensor_def, registers)
+        except (ValueError, IndexError) as err:
+            _LOGGER.debug("Wert fuer %s nicht dekodierbar: %s", key, err)
+            data[key] = None
+
+    async def _read_block(self, client: AsyncModbusTcpClient, block: RegisterBlock, data: SensorData) -> None:
+        """Read one block; fall back to single reads if the device rejects it."""
+        registers = await self._read(client, block.start, block.count)
+        if registers is not None:
+            for sensor_def in block.sensors:
+                try:
+                    chunk = slice_registers(block, registers, sensor_def)
+                except ValueError as err:
+                    _LOGGER.debug("%s", err)
+                    data[str(sensor_def["key"])] = None
+                    continue
+                self._decode_into(data, sensor_def, chunk)
+            return
+
+        if len(block.sensors) > 1:
+            _LOGGER.debug(
+                "Block %s-%s abgelehnt, lese Register einzeln", block.start, block.end - 1
+            )
+        for sensor_def in block.sensors:
+            key = str(sensor_def["key"])
+            single = await self._read(client, int(sensor_def["address"]), int(sensor_def["count"]))
+            if single is None:
+                _LOGGER.debug("Modbus-Fehler auf Register %s (%s)", sensor_def["address"], key)
+                data[key] = None
+                continue
+            self._decode_into(data, sensor_def, single)
+
+    async def _async_update_data(self) -> SensorData:
+        """Fetch data from the inverter via Modbus TCP."""
+        client = await self._async_get_client()
+        data: SensorData = {}
 
         try:
-            for sensor_def in SENSOR_DEFINITIONS:
-                key = str(sensor_def["key"])
-                address = int(sensor_def["address"])
-                count = int(sensor_def["count"])
-                data_type = str(sensor_def["data_type"])
-                gain = int(sensor_def["gain"])
-                swap = sensor_def.get("swap")
-                max_abs = sensor_def.get("max_abs")
-                if swap is not None:
-                    swap = str(swap).strip().lower()
-                if max_abs is not None:
-                    max_abs = float(max_abs)
-
-                result = await _read_input_registers_compat(
-                    client=client,
-                    address=address + MODBUS_ADDRESS_OFFSET,
-                    count=count,
-                    unit_id=self.unit_id,
-                )
-                if result.isError():
-                    _LOGGER.debug("Modbus-Fehler auf Register %s (%s)", address, key)
-                    data[key] = None
-                    continue
-
-                data[key] = self._decode_register_value(
-                    result.registers, data_type, gain, swap, max_abs
-                )
-
-            return data
-        except UpdateFailed:
-            raise
-        except Exception as err:
+            for block in self._blocks:
+                await self._read_block(client, block, data)
+        except (ConnectionException, ModbusIOException, TimeoutError, OSError) as err:
+            self._close_client()
             raise UpdateFailed(f"Datenabfrage fehlgeschlagen: {err}") from err
-        finally:
-            client.close()
 
+        if all(value is None for value in data.values()):
+            raise UpdateFailed("Das Geraet hat auf keine Registerabfrage geantwortet")
+
+        return data

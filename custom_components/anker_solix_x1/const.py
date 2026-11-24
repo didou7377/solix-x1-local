@@ -12,14 +12,24 @@ DEFAULT_NAME = "Anker Solix X1"
 DEFAULT_PORT = 502
 DEFAULT_SCAN_INTERVAL = 5
 DEFAULT_UNIT_ID = 1
-# X1 addresses in the protocol table appear to be usable directly (0-based).
-# Set to -1 only if your device documentation uses 1-based addressing.
+# The addresses from the X1 protocol table are used as-is on the wire.
+# Set to -1 only if your firmware expects the table addresses shifted by one.
 MODBUS_ADDRESS_OFFSET = 0
+
+# Connection handling.
+MODBUS_TIMEOUT = 5  # seconds per request
+MODBUS_RETRIES = 1
+
+# Register batching: neighbouring sensors are read in one request.
+# MAX_BLOCK_SIZE stays below the Modbus limit of 125 registers per request.
+# MAX_BLOCK_GAP is the largest unused gap that is still read to join two blocks.
+MAX_BLOCK_SIZE = 100
+MAX_BLOCK_GAP = 8
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 # Sensors can be extended by adding entries to this list.
-# - address: protocol address (1-based, as in documentation)
+# - address: register address as listed in the X1 protocol table
 # - count: number of 16-bit Modbus registers
 # - data_type: uint16 | int16 | uint32 | int32 | string
 # - gain: value divisor from protocol table (10 => raw/10)
@@ -321,7 +331,7 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "swap": "word",
         "gain": 10,
         "unit": "kWh",
-        "device_class": "energy",
+        "device_class": "energy_storage",
         "state_class": "measurement",
     },
     {
@@ -333,7 +343,7 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "gain": 1,
         "unit": None,
         "device_class": None,
-        "state_class": "measurement",
+        "state_class": None,
     },
     {
         "key": "akku_voltage",
@@ -478,7 +488,7 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "swap": "word",
         "gain": 100,
         "unit": "kWh",
-        "device_class": "energy",
+        "device_class": "energy_storage",
         "state_class": "measurement",
     },
     {
@@ -490,7 +500,7 @@ SENSOR_DEFINITIONS: list[dict[str, str | int | float | None]] = [
         "gain": 1,
         "unit": None,
         "device_class": None,
-        "state_class": "measurement",
+        "state_class": None,
     },
     {
         "key": "akku1_voltage",

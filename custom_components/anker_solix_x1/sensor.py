@@ -10,7 +10,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfElectricCurrent,
@@ -21,12 +20,13 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SENSOR_DEFINITIONS
-from .coordinator import AnkerSolixX1Coordinator
+from .coordinator import AnkerSolixX1ConfigEntry, AnkerSolixX1Coordinator
 
 
 def _map_device_class(device_class: str | None) -> SensorDeviceClass | None:
@@ -44,6 +44,8 @@ def _map_device_class(device_class: str | None) -> SensorDeviceClass | None:
         return SensorDeviceClass.FREQUENCY
     if device_class == "energy":
         return SensorDeviceClass.ENERGY
+    if device_class == "energy_storage":
+        return SensorDeviceClass.ENERGY_STORAGE
     return None
 
 
@@ -92,11 +94,11 @@ class AnkerSensorDescription(SensorEntityDescription):
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AnkerSolixX1ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    coordinator: AnkerSolixX1Coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     sensors = []
     for sensor_def in SENSOR_DEFINITIONS:
         sensors.append(
@@ -124,26 +126,35 @@ class AnkerSolixX1Sensor(CoordinatorEntity[AnkerSolixX1Coordinator], SensorEntit
     def __init__(
         self,
         coordinator: AnkerSolixX1Coordinator,
-        entry: ConfigEntry,
+        entry: AnkerSolixX1ConfigEntry,
         description: AnkerSensorDescription,
     ) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = description.name
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_class = description.device_class
-        self._attr_state_class = description.state_class
-        self._attr_native_unit_of_measurement = description.native_unit_of_measurement
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "Anker",
-            "model": "SOLIX X1",
-        }
+
+        data = coordinator.data or {}
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title,
+            manufacturer="Anker",
+            model=_text_or_none(data.get("model_name")) or "SOLIX X1",
+            serial_number=_text_or_none(data.get("serial_number")),
+            sw_version=_text_or_none(data.get("software_version")),
+        )
 
     @property
     def native_value(self) -> int | float | str | None:
         """Return sensor value."""
+        if not self.coordinator.data:
+            return None
         return self.coordinator.data.get(self.entity_description.key)
+
+
+def _text_or_none(value: object) -> str | None:
+    """Return a non-empty string or None."""
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
 

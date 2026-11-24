@@ -4,6 +4,23 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 
 Das Format orientiert sich an Keep a Changelog und Semantic Versioning.
 
+## [0.2.0] - 2026-11-24
+### Changed
+- Modbus-Register werden in zusammenhaengenden Bloecken gelesen statt einzeln (56 -> 8 Anfragen pro Zyklus). Lehnt das Geraet einen Block ab, wird auf Einzelabfragen zurueckgefallen.
+- Die TCP-Verbindung bleibt zwischen den Zyklen offen und wird nur nach Fehlern neu aufgebaut; sie wird beim Entladen der Integration geschlossen.
+- Timeout (5 s) und eine Wiederholung pro Anfrage.
+- Dekodierung in `modbus_codec.py` ausgelagert und mit Tests abgedeckt.
+- `entry.runtime_data` statt `hass.data`.
+- `akku_rated_capacity` und `akku1_rate_capacity` nutzen `energy_storage` statt `energy` (die Kombination `energy` + `measurement` ist in HA ungueltig).
+- `akku_status` und `akku1_status` ohne `state_class` (Statuscodes sind keine Messwerte).
+- Geraeteinfo enthaelt Modell, Seriennummer und Software-Version aus den Registern.
+- Mindestversion Home Assistant 2024.12.
+### Fixed
+- Ein geaendertes Scan-Intervall wird sofort uebernommen (Options-Listener fehlte).
+- OptionsFlow setzt `config_entry` nicht mehr selbst (in neueren HA-Versionen ein Fehler).
+- Widerspruechliche Kommentare zur Adressierung in `const.py` bereinigt.
+- Die Pruefung auf doppelte Einrichtung laeuft vor dem Verbindungstest.
+
 ## [0.1.7] - 2026-02-22
 ### Changed
 - Akku-Kapazitaetswert angepasst: `akku_rated_capacity` (`10250`) liest nun mit `swap: "word"`.
