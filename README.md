@@ -13,7 +13,38 @@ Die Integration liest Messwerte direkt aus deinem Geraet im lokalen Netzwerk (ke
 - Konfigurierbarer Host, Port und Abfrageintervall
 - Automatische Sensor-Erstellung aus `SENSOR_DEFINITIONS` in `const.py`
 - Fokus auf stabile Read-Only-Messwerte (keine Schreib-/Steuerfunktionen)
-- HACS Custom Repository geeignet
+- Gebuendeltes Lesen ueber eine dauerhafte Verbindung (8 Anfragen pro Zyklus)
+- HACS Custom Repository geeignet, Updates direkt in Home Assistant
+
+---
+
+## So funktioniert es
+
+### Wie die Daten in Home Assistant kommen
+
+Home Assistant fragt den X1 regelmaessig selbst ab (Polling). Der X1 meldet sich nicht von sich aus.
+
+```
+X1 (Wechselrichter)  <-- Modbus TCP, Port 502 --  Home Assistant
+```
+
+Ablauf pro Zyklus (Standard: alle 5 Sekunden):
+
+1. **Coordinator** (`coordinator.py`): Ein Timer von Home Assistant startet die Abfrage.
+2. **Modbus-Anfrage**: Ueber die offene TCP-Verbindung werden zusammenhaengende Registerbereiche gelesen, z. B. 34 Register ab Adresse `10002`. Der X1 antwortet mit rohen 16-Bit-Werten.
+3. **Dekodieren** (`modbus_codec.py`): Anhand von `const.py` werden daraus echte Werte (Byte-/Wort-Reihenfolge, Vorzeichen, Teilung durch `gain`), z. B. `[0xFA24, 0xFFFF]` -> `-1500 W`.
+4. **Sensoren** (`sensor.py`): Alle Sensoren haengen am Coordinator und werden automatisch benachrichtigt, sobald neue Daten da sind. Home Assistant speichert die Werte in seiner Datenbank.
+
+Faellt die Verbindung aus, zeigen die Sensoren `unavailable`. Beim naechsten Zyklus wird automatisch neu verbunden.
+
+### Wie Home Assistant von neuen Versionen erfaehrt
+
+Das uebernimmt **HACS**:
+
+1. HACS kennt dieses Repository als Custom Repository.
+2. Es prueft regelmaessig, ob es auf GitHub ein neues **Release** gibt (z. B. `v0.2.0`).
+3. Ist das Release neuer als die installierte Version, erscheint unter **Einstellungen -> Updates** ein Update.
+4. Installieren und Home Assistant neu starten.
 
 ---
 
@@ -107,6 +138,24 @@ Im Options-Dialog kannst du das **Scan-Intervall** aendern, ohne die Integration
 - Erreichbarkeit und Stabilitaet der Verbindung pruefen
 - Scan-Intervall testweise erhoehen (z. B. 10-15 Sekunden)
 - Pruefen, ob dein Geraet die entsprechenden Register wirklich liefert
+- Debug-Log einschalten (siehe unten) und nach `Modbus-Fehler auf Register` suchen
+
+### Debug-Log einschalten
+
+In `configuration.yaml`:
+
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.anker_solix_x1: debug
+```
+
+Nach dem Neustart steht im Log u. a. `56 Sensoren werden in 8 Modbus-Anfragen gelesen`.
+
+### Meldung `Block ... abgelehnt, lese Register einzeln`
+
+Das Geraet hat eine gebuendelte Abfrage abgelehnt, meist weil der Bereich ein Register enthaelt, das die Firmware nicht kennt. Die Integration liest diese Register dann einzeln weiter, die Werte stimmen also. Taucht die Meldung bei jedem Zyklus auf, `MAX_BLOCK_GAP` in `const.py` verkleinern (z. B. auf `0`), damit nur direkt aneinanderliegende Register zusammengefasst werden.
 
 ### Werte wirken unplausibel
 
@@ -124,12 +173,21 @@ Typische Felder:
 - `key`, `name`
 - `address`, `count`
 - `data_type` (`uint16`, `int16`, `uint32`, `int32`, `string`)
-- `gain`, optional `swap`
+- `gain` (Teiler, `10` bedeutet Rohwert / 10)
+- optional `swap`: `word` (Wortreihenfolge tauschen), `byte`, `word_byte`
 - optional HA-Metadaten (`unit`, `device_class`, `state_class`, `entity_category`)
+
+Regeln fuer die HA-Metadaten:
+
+- Zaehler (`device_class: energy`) brauchen `state_class: total_increasing`
+- Gespeicherte Energie wie Akku-Kapazitaet: `device_class: energy_storage` mit `state_class: measurement`
+- Statuscodes und Texte: `state_class: None`, sonst legt HA unnoetige Langzeitstatistiken an
+
+Neue Sensoren werden automatisch in die gebuendelten Abfragen einsortiert, dafuer ist nichts weiter zu tun.
 
 Nach Anpassungen:
 
-1. Dateien speichern
+1. Tests ausfuehren (siehe unten), sie pruefen u. a. doppelte Keys und falsche `count`-Werte
 2. Home Assistant neu starten
 3. Integration neu laden (oder komplett neu starten)
 
@@ -220,12 +278,35 @@ Nach Anpassungen:
 
 ## Entwicklung / Releases
 
-Minimaler Release-Ablauf:
+### Projektaufbau
 
-1. `manifest.json` Version anheben
-2. Aenderungen committen und auf `main` pushen
-3. GitHub Release/Tag erstellen (z. B. `v0.1.1`)
-4. In HACS nach Updates suchen
+| Datei | Aufgabe |
+|---|---|
+| `__init__.py` | Setup, Entladen, Neuladen bei geaenderten Optionen |
+| `config_flow.py` | Einrichtungs- und Options-Dialog |
+| `coordinator.py` | Modbus-Verbindung und zyklische Abfrage |
+| `modbus_codec.py` | Dekodierung und Bildung der Abfrage-Bloecke (ohne HA-Abhaengigkeit) |
+| `sensor.py` | Sensor-Entities und Geraeteinfo |
+| `const.py` | Konstanten und `SENSOR_DEFINITIONS` |
+
+### Tests
+
+Die Tests brauchen kein Home Assistant:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Die GitHub Action fuehrt bei jedem Push die Tests, `hassfest` und die HACS-Pruefung aus.
+
+### Release-Ablauf
+
+1. Version in `manifest.json` anheben
+2. `CHANGELOG.md` und den Abschnitt "Neu in ..." in dieser README ergaenzen
+3. Tests ausfuehren
+4. Aenderungen committen und auf `main` pushen
+5. GitHub Release mit Tag erstellen (z. B. `v0.2.0`), erst dann sieht HACS die neue Version
+6. In HACS nach Updates suchen
 
 ---
 
